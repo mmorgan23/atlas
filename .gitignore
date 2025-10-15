@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.egg
+*.egg-info/
+dist/
+build/
+*.so
+
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints/
+
+# Environment files
+.env
+.env.*
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Database dumps/backups
+*.sqlite3
+*.db
+*.bak
+
+# Render/Deployment
+*.render.yaml
+
+# Misc
+*.swp

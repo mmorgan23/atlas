@@ -1,0 +1,15 @@
+torch
+torchvision
+torchaudio
+transformers
+datasets
+accelerate
+jupyterlab
+sentencepiece
+flask
+mysql-connector-python
+livereload
+openai
+langchain
+langchain-openai
+python-dotenv

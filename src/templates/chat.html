@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Atlas Chatbot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="/static/logo.png">
+    <!-- Bootstrap CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+    body { background: #eceef0; }
+    .chat-container { max-width: 900px; margin: 20px auto; padding: 0 8px; }
+    .chat-box { height: 50vh; min-height: 260px; max-height: 990px; overflow-y: auto; background: #fff; border-radius: 8px; border: 1px solid #ddd; padding: 12px; }
+        
+        /* Chat message containers */
+        .chat-message { margin-bottom: 18px; }
+        
+        /* Bot messages - left aligned, with light grey bubble */
+        .bot-message {
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 15px;
+        }
+        .bot-text {
+            color: #333;
+            font-weight: 500;
+            background: #f1f1f1;
+            padding: 10px;
+            border-radius: 18px;
+            max-width: 90%;
+            width: fit-content;
+        }
+        
+        /* User messages - right aligned, with bubble */
+        .user-message {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 15px;
+        }
+        .user-text {
+            background: #007bff;
+            color: white;
+            padding: 10px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+            width: fit-content;
+        }
+        
+        .chat-header-logo {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+            border-radius: 8px;
+            background: #fff;
+            border: 1px solid #ddd;
+            margin-right: 10px;
+        }
+        .chat-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container container-fluid">
+        {% if flash_messages %}
+            {% for msg in flash_messages %}
+                <div class="alert alert-info" role="alert" style="margin-bottom: 16px;">
+                    {{ msg }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        <div class="chat-header-row">
+            <img src="/static/logo.png" alt="Atlas Logo" class="chat-header-logo">
+            <h2 class="mb-0">Atlas Chatbot</h2>
+        </div>
+        <div>
+            <p style="text-align: center;">By Melissa Morgan Whiz - for demo purposes only!</p>
+        </div>
+        <div class="chat-box mb-3" id="response-container">
+            <!-- DEBUG INFO -->
+            <!-- <div style="background: #f0f0f0; padding: 10px; margin-bottom: 10px; font-size: 12px; border: 1px solid #ccc;">
+                DEBUG: History length: {{ history|length }}<br>
+                User input: "{{ user_input }}"<br>
+                Bot response: "{{ bot_response }}"<br>
+                History exists: {{ history is not none }}<br>
+                History is truthy: {{ history and "YES" or "NO" }}<br>
+            </div> -->
+            
+            {% if history and history|length > 0 %}
+                <div style="background: lightgray; padding: 7px; margin-bottom: 10px; font-size: 16px; color: #000; font-weight: 600;">
+                    **Use Atlas to organize and update your database. Scroll down to view your changes to the database live.**
+                </div>
+                {% for item in history %}
+                    {% if item.user and item.user != "(no user input)" and item.user.strip() %}
+                        <!-- User message (right, with bubble) -->
+                        <div class="user-message">
+                            <div class="user-text">{{ item.user }}</div>
+                        </div>
+                    {% endif %}
+                    {% if item.bot and item.bot != "(no bot response)" %}
+                        <!-- Bot message (left, with bubble) -->
+                        <div class="bot-message">
+                            <div class="bot-text">{{ item.bot | replace('\n', '<br>') | safe }}</div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                <div style="background: #fff3cd; padding: 5px; margin-bottom: 10px; font-size: 11px; color: #856404;">
+                    No history, showing single bot response:
+                </div>
+                {% if bot_response and bot_response != "(no response)" %}
+                    <!-- Bot message (left, with bubble) -->
+                    <div class="bot-message">
+                        <div class="bot-text">{{ bot_response }}</div>
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">Type Your Message</div>
+            <div class="card-body bg-light">
+                <form id="chat-form" method="post" class="d-flex flex-wrap gap-2">
+                    <input type="text" name="message" class="form-control" placeholder="Type your message..." autocomplete="off" required style="min-width:0; min-height:48px; font-size:1.15rem;">
+                    <div class="d-flex flex-row justify-content-end w-100 gap-2 mt-2">
+                        <button type="submit" class="btn btn-primary">Send</button>
+                        <button type="button" class="btn btn-secondary" onclick="clearChat()">Clear</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- Add Customer Form -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">Add Customer</div>
+            <div class="card-body">
+                <form method="POST" action="/add_customer">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-12 col-sm-6 col-md-3 mb-2 mb-md-0">
+                            <input type="text" name="first_name" class="form-control" placeholder="First Name" required>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-3 mb-2 mb-md-0">
+                            <input type="text" name="last_name" class="form-control" placeholder="Last Name" required>
+                        </div>
+                        <div class="col-12 col-md-3 mb-2 mb-md-0">
+                            <input type="email" name="email" class="form-control" placeholder="Email" required>
+                        </div>
+                        <div class="col-12 col-md-3 mb-2 mb-md-0">
+                            <input type="text" name="phone" class="form-control" placeholder="Phone" required>
+                        </div>
+                        <div class="col-12 d-flex justify-content-end mt-2">
+                            <button type="submit" class="btn btn-success">Add Customer</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- CSV Upload Form -->
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">Upload Customers via CSV</div>
+            <div class="card-body">
+                <form method="POST" action="/upload_customers" enctype="multipart/form-data">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-12 col-md-8 mb-2 mb-md-0">
+                            <input type="file" name="csv_file" accept=".csv" class="form-control" required>
+                        </div>
+                        <div class="col-12 d-flex justify-content-end mt-2">
+                            <button type="submit" class="btn btn-warning">Upload CSV</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- Customer List Table -->
+        {% if customers and customers|length > 0 and customers[0].get('first_name') %}
+        <br><hr><br>
+        <div class="mb-3">
+            <p>For Demo purposes, view contacts in database live and compare above, inlcuding the ones that you added.</p>
+            <h5>Customer List</h5>
+            <div class="table-responsive">
+            <table class="table table-striped table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>First Name</th>
+                        <th>Last Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for customer in customers %}
+                        <tr>
+                            <td>{{ customer.first_name }}</td>
+                            <td>{{ customer.last_name }}</td>
+                            <td>{{ customer.email }}</td>
+                            <td>{{ customer.phone }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+        {% endif %}
+        {% if message %}
+            <p class="text-success">{{ message }}</p>
+        {% endif %}
+    </div>
+    <script>
+        console.log("Test");
+
+        function scrollToBottom() {
+            const respContainer = document.getElementById('response-container');
+            if (respContainer) {
+                // Use setTimeout to ensure content is fully rendered
+                setTimeout(() => {
+                    respContainer.scrollTop = respContainer.scrollHeight;
+                }, 50);
+            }
+        }
+        
+        function forceScrollToBottom() {
+            const respContainer = document.getElementById('response-container');
+            if (respContainer) {
+                // Multiple attempts with different delays to ensure scrolling
+                setTimeout(() => respContainer.scrollTop = respContainer.scrollHeight, 10);
+                setTimeout(() => respContainer.scrollTop = respContainer.scrollHeight, 50);
+                setTimeout(() => respContainer.scrollTop = respContainer.scrollHeight, 100);
+                setTimeout(() => respContainer.scrollTop = respContainer.scrollHeight, 200);
+            }
+        }
+        
+        // Scroll on page load
+        document.addEventListener("DOMContentLoaded", forceScrollToBottom);
+        
+        // Scroll after window loads (in case images/content affect height)
+        window.addEventListener("load", forceScrollToBottom);
+        
+        // Watch for changes in the chat container and auto-scroll
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'childList') {
+                    scrollToBottom();
+                }
+            });
+        });
+        
+        // Start observing after DOM is loaded
+        document.addEventListener("DOMContentLoaded", function() {
+            const respContainer = document.getElementById('response-container');
+            if (respContainer) {
+                observer.observe(respContainer, { childList: true, subtree: true });
+            }
+        });
+        
+        function clearChat() {
+            fetch('/clear', {method: 'POST'})
+                .then(() => window.location.reload());
+        }
+    </script>
+</body>
+</html>

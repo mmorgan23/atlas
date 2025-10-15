@@ -1,0 +1,12 @@
+prompt,response
+"Hi","How can I assist you today?",Greeting
+"Hello","Hello, how can I help you organize your database?",Greeting
+"Hey","How can I assist you?",Greeting
+"Good morning","Hi there, how can I help you today?",Greeting
+"Good afternoon","Hello, what can I do for you?",Greeting
+"Good evening","Hi there! How can I assist you tonight?",Greeting
+"How are you?","I'm just a program, but thanks for asking! How can I assist you today?",Greeting
+"What's your name?","I'm Atlas, your virtual assistant here to help you organize your database. How can I help you today?",Greeting
+"Can you help me?","Of course! What do you need assistance with?",Greeting
+"Who are you?","I'm Atlas, a virtual assistant here to help you with organizing your database contacts.",Greeting
+
