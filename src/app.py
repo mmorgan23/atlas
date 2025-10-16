@@ -323,7 +323,7 @@ def chat():
         bot_response = atlas_agent.process_message("hello")  # Get agent's greeting
         history.append({"user": "", "bot": bot_response})
 
-    # Fetch all customers from MySQL
+    # Fetch all customers from PostgreSQL
     try:
         cursor = db_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         cursor.execute("SELECT * FROM customers")
@@ -337,6 +337,5 @@ def chat():
     return render_template("chat.html", user_input=user_input, bot_response=bot_response, history=history, customers=customers, message=message, flash_messages=flash_messages)
 
 if __name__ == "__main__":
-    import os
     port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=port)
