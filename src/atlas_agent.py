@@ -11,7 +11,7 @@ from difflib import get_close_matches
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 from dataclasses import dataclass
-import mysql.connector
+import psycopg2
 
 # For LLM Integration (we'll start with a simple approach, then add OpenAI)
 import openai
@@ -54,18 +54,18 @@ class AgentTools:
     def search_customer(self, name: str) -> Dict[str, Any]:
         """Search for customer by name"""
         try:
-            cursor = self.db_conn.cursor(dictionary=True)
+            cursor = self.db_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             # Split name and search both first and last name
             tokens = [t for t in name.strip().split() if t]
             name_parts = [t.lower() for t in tokens]
             results: list[dict] = []
 
             if len(name_parts) == 1:
-                # Single token: match first or last name using LIKE (case-insensitive by default)
+                # Single token: match first or last name using LIKE, case-insensitive
                 tok = name_parts[0]
                 query = (
                     "SELECT * FROM customers "
-                    "WHERE first_name LIKE %s OR last_name LIKE %s "
+                    "WHERE LOWER(first_name) LIKE LOWER(%s) OR LOWER(last_name) LIKE LOWER(%s) "
                     "ORDER BY id DESC LIMIT 50"
                 )
                 like = f"%{tok}%"
@@ -78,9 +78,9 @@ class AgentTools:
                 last = " ".join(name_parts[1:])
                 print(f"[DEBUG] Multi-token search: first='{first}', last='{last}', tokens={name_parts}")
                 # Exact match first+last
-                print(f"[DEBUG] Exact match query: SELECT * FROM customers WHERE first_name = %s AND last_name = %s ORDER BY id DESC, params=({first}, {last})")
+                print(f"[DEBUG] Exact match query: SELECT * FROM customers WHERE LOWER(first_name) = LOWER(%s) AND LOWER(last_name) = LOWER(%s) ORDER BY id DESC, params=({first}, {last})")
                 cursor.execute(
-                    "SELECT * FROM customers WHERE first_name = %s AND last_name = %s ORDER BY id DESC",
+                    "SELECT * FROM customers WHERE LOWER(first_name) = LOWER(%s) AND LOWER(last_name) = LOWER(%s) ORDER BY id DESC",
                     (first, last)
                 )
                 results = cursor.fetchall()
@@ -90,7 +90,7 @@ class AgentTools:
                     rev_first, rev_last = last, first
                     print(f"[DEBUG] Reversed match query: SELECT * FROM customers WHERE first_name = %s AND last_name = %s ORDER BY id DESC, params=({rev_first}, {rev_last})")
                     cursor.execute(
-                        "SELECT * FROM customers WHERE first_name = %s AND last_name = %s ORDER BY id DESC",
+                        "SELECT * FROM customers WHERE LOWER(first_name) = LOWER(%s) AND LOWER(last_name) = LOWER(%s) ORDER BY id DESC",
                         (rev_first, rev_last)
                     )
                     results = cursor.fetchall()
@@ -101,7 +101,7 @@ class AgentTools:
                     like_last = f"%{last}%"
                     print(f"[DEBUG] LIKE fallback query: SELECT * FROM customers WHERE first_name LIKE %s AND last_name LIKE %s ORDER BY id DESC LIMIT 50, params=({like_first}, {like_last})")
                     cursor.execute(
-                        "SELECT * FROM customers WHERE first_name LIKE %s AND last_name LIKE %s ORDER BY id DESC LIMIT 50",
+                        "SELECT * FROM customers WHERE LOWER(first_name) LIKE LOWER(%s) AND LOWER(last_name) LIKE LOWER(%s) ORDER BY id DESC LIMIT 50",
                         (like_first, like_last)
                     )
                     results = cursor.fetchall()
@@ -129,7 +129,7 @@ class AgentTools:
             first_name = name_parts[0].strip().capitalize() if name_parts and name_parts[0] else ""
             last_name = name_parts[1].strip().capitalize() if len(name_parts) > 1 else ""
             
-            cursor = self.db_conn.cursor(dictionary=True)
+            cursor = self.db_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             query = """
                 INSERT INTO customers (first_name, last_name, email, phone)
                 VALUES (%s, %s, %s, %s)
@@ -154,7 +154,7 @@ class AgentTools:
     def update_customer(self, customer_id: int, **kwargs) -> Dict[str, Any]:
         """Update customer information"""
         try:
-            cursor = self.db_conn.cursor(dictionary=True)
+            cursor = self.db_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             
             # Build dynamic update query
             update_fields = []
@@ -705,7 +705,7 @@ For multi-step requests, use:
                 "message": "I'm not sure how to help with that. I can help you search for customers, add new customers, list all customers, or get database statistics.",
                 "suggestions": [
                     "Search for a customer: 'Find Sandra'",
-                    "Add customer: 'Add customer John Doe john@email.com 555-1234'",
+                    "Add customer: 'Add customer Joe Smith josmith@email.com 321-555-1234'",
                     "List customers: 'Show all customers'",
                     "Get stats: 'How many customers do we have?'"
                 ]
@@ -749,7 +749,7 @@ For multi-step requests, use:
         if result_type == "search_customer":
             customers = result.get("results", [])
             if not customers:
-                return f"I couldn't find any customers matching your search. Would you like me to add a new customer?"
+                return f"I couldn't find any customers matching your search. Would you like me to add a new customer? If so, please provide the details in the following format: 'Add customer John Doe john@email.com 212-555-1234'"
             
             if len(customers) == 1:
                 customer = customers[0]

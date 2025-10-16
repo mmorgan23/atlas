@@ -7,7 +7,7 @@ accelerate
 jupyterlab
 sentencepiece
 flask
-mysql-connector-python
+psycopg2
 livereload
 openai
 langchain

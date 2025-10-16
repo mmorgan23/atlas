@@ -2,25 +2,28 @@ from flask import Flask, render_template, request, redirect, url_for, flash, get
 from livereload import Server
 import csv
 import string
-import mysql.connector
+import psycopg2
+import psycopg2.extras
 import io
 import re
 import os
 from atlas_agent import AtlasAgent
 from dotenv import load_dotenv
 
+
+
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'atlas-secret-key')
 
-# Connect to MySQL (Docker, port 3307)
-db_conn = mysql.connector.connect(
-    host=os.getenv('DB_HOST', '127.0.0.1'),
-    user=os.getenv('DB_USER', 'root'),
-    password=os.getenv('DB_PASSWORD', 'my-secret-pw'),
-    port=int(os.getenv('DB_PORT', 3307)),
-    database=os.getenv('DB_NAME', 'atlas_customers')
+# Connect to PostgreSQL
+db_conn = psycopg2.connect(
+    host=os.getenv('PG_HOST', 'localhost'),
+    user=os.getenv('PG_USER', 'atlas_user'),
+    password=os.getenv('PG_PASSWORD', ''),
+    port=int(os.getenv('PG_PORT', 5432)),
+    dbname=os.getenv('PG_DB', 'atlas_customers')
 )
 
 # Initialize Atlas Agent
@@ -109,7 +112,7 @@ def search_person_by_name(name_input):
     name_parts = name_input.strip().split()
     
     try:
-        cursor = db_conn.cursor(dictionary=True)
+        cursor = db_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         
         if len(name_parts) == 1:
             # Only first name provided
@@ -204,7 +207,7 @@ def upload_customers():
     """Route to upload customers from CSV"""
     if 'csv_file' not in request.files:
         try:
-            cursor = db_conn.cursor(dictionary=True)
+            cursor = db_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             cursor.execute("SELECT * FROM customers")
             customers = cursor.fetchall()
             cursor.close()
@@ -215,7 +218,7 @@ def upload_customers():
     file = request.files['csv_file']
     if file.filename == '':
         try:
-            cursor = db_conn.cursor(dictionary=True)
+            cursor = db_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             cursor.execute("SELECT * FROM customers")
             customers = cursor.fetchall()
             cursor.close()
@@ -225,7 +228,7 @@ def upload_customers():
     
     if not file.filename.lower().endswith('.csv'):
         try:
-            cursor = db_conn.cursor(dictionary=True)
+            cursor = db_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             cursor.execute("SELECT * FROM customers")
             customers = cursor.fetchall()
             cursor.close()
@@ -266,7 +269,7 @@ def upload_customers():
     
     # Fetch customers to display
     try:
-        cursor = db_conn.cursor(dictionary=True)
+        cursor = db_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         cursor.execute("SELECT * FROM customers")
         customers = cursor.fetchall()
         cursor.close()
@@ -322,14 +325,18 @@ def chat():
 
     # Fetch all customers from MySQL
     try:
-        cursor = db_conn.cursor(dictionary=True)
+        cursor = db_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         cursor.execute("SELECT * FROM customers")
         customers = cursor.fetchall()
         cursor.close()
+        print("Fetched customers:", customers)  # Debugging statement
     except Exception as e:
         customers = [{"error": str(e)}]
+        print("Fetched customers:", customers)  # Debugging statement added here
 
     return render_template("chat.html", user_input=user_input, bot_response=bot_response, history=history, customers=customers, message=message, flash_messages=flash_messages)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
