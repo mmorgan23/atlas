@@ -52,33 +52,29 @@ class AgentTools:
         }
     
     def search_customer(self, name: str) -> Dict[str, Any]:
-        """Search for customer by name"""
+        """Search for customer by name (exact match only)"""
         try:
             cursor = self.db_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-            # Split name and search both first and last name
             tokens = [t for t in name.strip().split() if t]
             name_parts = [t.lower() for t in tokens]
             results: list[dict] = []
 
             if len(name_parts) == 1:
-                # Single token: match first or last name using LIKE, case-insensitive
+                # Single token: match exact first or last name only
                 tok = name_parts[0]
                 query = (
                     "SELECT * FROM customers "
-                    "WHERE LOWER(first_name) LIKE LOWER(%s) OR LOWER(last_name) LIKE LOWER(%s) "
+                    "WHERE LOWER(first_name) = LOWER(%s) OR LOWER(last_name) = LOWER(%s) "
                     "ORDER BY id DESC LIMIT 50"
                 )
-                like = f"%{tok}%"
-                print(f"[DEBUG] Single-token search: query={query}, params=({like}, {like}), tokens={name_parts}")
-                cursor.execute(query, (like, like))
+                print(f"[DEBUG] Single-token exact search: query={query}, params=({tok}, {tok}), tokens={name_parts}")
+                cursor.execute(query, (tok, tok))
                 results = cursor.fetchall()
-            else:
-                # Two+ tokens: try exact first+last, then reversed exact, then LIKE AND LIKE
+            elif len(name_parts) >= 2:
+                # Two+ tokens: try exact first+last, then reversed exact
                 first = name_parts[0]
                 last = " ".join(name_parts[1:])
-                print(f"[DEBUG] Multi-token search: first='{first}', last='{last}', tokens={name_parts}")
-                # Exact match first+last
-                print(f"[DEBUG] Exact match query: SELECT * FROM customers WHERE LOWER(first_name) = LOWER(%s) AND LOWER(last_name) = LOWER(%s) ORDER BY id DESC, params=({first}, {last})")
+                print(f"[DEBUG] Multi-token exact search: first='{first}', last='{last}', tokens={name_parts}")
                 cursor.execute(
                     "SELECT * FROM customers WHERE LOWER(first_name) = LOWER(%s) AND LOWER(last_name) = LOWER(%s) ORDER BY id DESC",
                     (first, last)
@@ -88,21 +84,10 @@ class AgentTools:
                 # If none, try reversed (user may input Last First)
                 if not results and len(name_parts) == 2:
                     rev_first, rev_last = last, first
-                    print(f"[DEBUG] Reversed match query: SELECT * FROM customers WHERE first_name = %s AND last_name = %s ORDER BY id DESC, params=({rev_first}, {rev_last})")
+                    print(f"[DEBUG] Reversed exact search: SELECT * FROM customers WHERE first_name = %s AND last_name = %s ORDER BY id DESC, params=({rev_first}, {rev_last})")
                     cursor.execute(
                         "SELECT * FROM customers WHERE LOWER(first_name) = LOWER(%s) AND LOWER(last_name) = LOWER(%s) ORDER BY id DESC",
                         (rev_first, rev_last)
-                    )
-                    results = cursor.fetchall()
-
-                # If still none, fallback to LIKE AND LIKE
-                if not results:
-                    like_first = f"%{first}%"
-                    like_last = f"%{last}%"
-                    print(f"[DEBUG] LIKE fallback query: SELECT * FROM customers WHERE first_name LIKE %s AND last_name LIKE %s ORDER BY id DESC LIMIT 50, params=({like_first}, {like_last})")
-                    cursor.execute(
-                        "SELECT * FROM customers WHERE LOWER(first_name) LIKE LOWER(%s) AND LOWER(last_name) LIKE LOWER(%s) ORDER BY id DESC LIMIT 50",
-                        (like_first, like_last)
                     )
                     results = cursor.fetchall()
 
