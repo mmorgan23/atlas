@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, get_flashed_messages
-from livereload import Server
 import csv
 import string
 import psycopg2
@@ -7,7 +6,7 @@ import psycopg2.extras
 import io
 import re
 import os
-from atlas_agent import AtlasAgent
+from .atlas_agent import AtlasAgent
 from dotenv import load_dotenv
 
 
@@ -286,10 +285,6 @@ def clear_chat():
     history = []
     return render_template("chat.html", message="Chat cleared.", user_input="", bot_response="", history=[], customers=[])
 
-@app.route("/livereload", methods=["GET"])
-def livereload():
-    """Handle livereload requests to avoid 404s"""
-    return "", 204
 
 @app.route("/", methods=["GET", "POST"])
 def chat():
