@@ -171,7 +171,7 @@ class AgentTools:
     def delete_customer(self, customer_id: int) -> Dict[str, Any]:
         """Delete a customer from the database"""
         try:
-            cursor = self.db_conn.cursor(dictionary=True)
+            cursor = self.db_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             query = "DELETE FROM customers WHERE id = %s"
             cursor.execute(query, (customer_id,))
             self.db_conn.commit()
@@ -189,7 +189,7 @@ class AgentTools:
     def search_customers(self, query: str) -> Dict[str, Any]:
         """Search customers by name or email"""
         try:
-            cursor = self.db_conn.cursor(dictionary=True)
+            cursor = self.db_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             search_query = """
                 SELECT * FROM customers 
                 WHERE first_name LIKE %s OR last_name LIKE %s OR email LIKE %s 
@@ -211,7 +211,7 @@ class AgentTools:
     def get_customers(self, limit: int = 10) -> Dict[str, Any]:
         """Get list of customers from the database"""
         try:
-            cursor = self.db_conn.cursor(dictionary=True)
+            cursor = self.db_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             query = "SELECT * FROM customers ORDER BY id DESC LIMIT %s"
             cursor.execute(query, (limit,))
             customers = cursor.fetchall()
